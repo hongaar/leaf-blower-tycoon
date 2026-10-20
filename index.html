@@ -14,9 +14,8 @@
 <div id="hud" class="hud hidden">
   <div id="hud-top" class="hud-top">
     <div class="chip" id="level-chip">Lv 1</div>
-    <div class="chip timer-chip">
+    <div class="chip score-chip" id="score-chip">
       <span id="timer">0</span>
-      <small id="best-label">Best —</small>
     </div>
     <div class="chip" id="leaves-chip">
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2c5 5 8 9 7 15-4 1-7 .2-9-1.6C11 10 9 6 6 2c2.2 0 4.2.2 6 0z"/></svg>
@@ -26,13 +25,9 @@
       <span class="coin-icon" aria-hidden="true"></span>
       <span id="coins">0</span>
     </div>
-    <div class="chip combo hidden" id="combo-chip">x2</div>
     <button id="mute" class="icon-btn" type="button" aria-label="Mute sound" aria-pressed="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9h4l5-4v14l-5-4H4V9zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
     </button>
-  </div>
-  <div class="battery-wrap" id="battery-wrap">
-    <div id="battery-bar"></div>
   </div>
   <div id="hint" class="hint">Coins only count in the bag. Leaves blown off the lawn vanish.</div>
   <div id="hud-bottom" class="hud-bottom">
@@ -58,7 +53,7 @@
       <button id="levels-btn" class="btn" type="button">Levels</button>
       <button id="menu-shop-btn" class="btn" type="button">Shop</button>
     </div>
-    <p id="start-hint" class="fine">Move the blower, hold to blow, sweep leaves into the glowing zone.</p>
+    <p id="start-hint" class="fine">Bag leaves for coins. Anything blown off the lawn is gone and pays nothing.</p>
     <button id="reset-btn" class="btn ghost" type="button">Reset progress</button>
   </div>
 </div>
@@ -69,7 +64,7 @@
       <h2>Levels</h2>
       <button id="levels-back" class="btn small" type="button">Back</button>
     </div>
-    <p class="fine">Stars compare your best time with par. Three stars means you beat par.</p>
+    <p class="fine">Stars follow the coins you bagged. Three stars means almost every leaf made the bag.</p>
     <div id="level-grid" class="level-grid"></div>
   </div>
 </div>
@@ -112,19 +107,21 @@
     <div id="result-stars" class="stars">★★★</div>
     <div id="result-banner" class="banner hidden">New best</div>
     <dl class="stats" id="result-stats"></dl>
-    <button id="next-btn" class="btn primary" type="button">Next level</button>
-    <div class="row">
-      <button id="replay-btn" class="btn" type="button">Replay</button>
-      <button id="complete-shop" class="btn" type="button">Shop</button>
+    <div class="result-actions">
+      <button id="next-btn" class="btn primary" type="button">Next level</button>
+      <div class="row">
+        <button id="replay-btn" class="btn" type="button">Replay</button>
+        <button id="complete-shop" class="btn" type="button">Shop</button>
+      </div>
+      <button id="complete-levels" class="btn ghost" type="button">All levels</button>
     </div>
-    <button id="complete-levels" class="btn ghost" type="button">All levels</button>
   </div>
 </div>
 
 <div id="screen-confirm" class="screen dim hidden">
   <div class="panel">
     <h2>Reset progress?</h2>
-    <p class="lede">This clears leafcoins, blowers, upgrades, and best times on this device.</p>
+    <p class="lede">This clears leafcoins, blowers, upgrades, and best scores on this device.</p>
     <button id="confirm-yes" class="btn danger" type="button">Reset everything</button>
     <button id="confirm-no" class="btn" type="button">Cancel</button>
   </div>

@@ -113,7 +113,7 @@
     let top = 18;
     let bot = 18;
     if (withHud) {
-      const nodes = [$('hud-top'), $('battery-wrap')];
+      const nodes = [$('hud-top')];
       for (let i = 0; i < nodes.length; i++) {
         if (nodes[i]) top = Math.max(top, nodes[i].getBoundingClientRect().bottom + 8);
       }
@@ -175,14 +175,12 @@
   }
 
   function playAspect() {
-    let top = 86;
+    let top = 64;
     let bot = 84;
     const hudTop = $('hud-top');
-    const battery = $('battery-wrap');
     const bottom = $('hud-bottom');
     if (hudTop && bottom && hud && !hud.classList.contains('hidden')) {
       top = Math.max(top, hudTop.getBoundingClientRect().bottom + 8);
-      if (battery) top = Math.max(top, battery.getBoundingClientRect().bottom + 8);
       bot = Math.max(bot, cssH - bottom.getBoundingClientRect().top + 8);
     }
     const availW = Math.max(220, cssW - 16);
@@ -386,16 +384,9 @@
     saveTimer = 0.4;
   }
 
-  function onEscape(leaf) {
+  function onEscape() {
     session.escaped += 1;
     session.collected += 1;
-    fx.popups.push({
-      x: leaf.x,
-      y: leaf.y - 8,
-      text: 'gone',
-      life: 0.45,
-      max: 0.45,
-    });
   }
 
   function releaseSpawns(view, time) {
@@ -587,21 +578,8 @@
     $('level-chip').textContent = 'Lv ' + level.n;
     $('level-chip').title = level.name;
     $('timer').textContent = formatCoins(session.runCoins);
-    const best = save.bestCoins[String(level.n)];
-    $('best-label').textContent = 'Best ' + (best == null ? '—' : formatCoins(best));
     $('leaves-count').textContent = uncollected(session) + '/' + level.total;
     $('coins').textContent = formatCoins(save.coins);
-    const combo = $('combo-chip');
-    const showCombo = session.combo >= 2 && session.raceTime - session.lastCollect < 0.8;
-    combo.classList.toggle('hidden', !showCombo);
-    if (showCombo) combo.textContent = 'x' + session.combo;
-    const pct = session.stats.batteryCapacity > 0 ? session.blower.charge / session.stats.batteryCapacity : 0;
-    const bar = $('battery-bar');
-    bar.style.width = Math.round(pct * 100) + '%';
-    bar.classList.toggle('mid', pct < 0.55 && pct >= 0.25);
-    bar.classList.toggle('low', pct < 0.25);
-    bar.classList.toggle('limp', session.blower.limp);
-    $('battery-wrap').title = session.stats.model.name + ' battery';
     const afford = LBT.anythingAffordable(save);
     $('afford-badge').classList.toggle('hidden', !afford);
     $('shop-btn').classList.toggle('afford', afford);
@@ -629,9 +607,8 @@
     $('result-stars').innerHTML = starString(stars).replace(/☆/g, '<span class="off">☆</span>');
     $('result-banner').classList.toggle('hidden', !session.isBest);
     const rows = [
-      ['Score', formatCoins(session.runCoins)],
+      ['Coins', formatCoins(session.runCoins)],
       ['Best', formatCoins(save.bestCoins[String(level.n)] == null ? 0 : save.bestCoins[String(level.n)])],
-      ['Bagged', String(session.bagged)],
       ['Blown away', String(session.escaped)],
     ];
     $('result-stats').innerHTML = rows.map(function (row) {
@@ -701,7 +678,7 @@
       const owned = i <= cur;
       const equipped = i === cur;
       const next = i === cur + 1;
-      let cost = equipped ? 'Equipped' : owned ? 'Equip' : next ? formatCoins(b.cost) : 'Locked';
+      let cost = equipped ? 'Equipped' : owned ? 'Equip' : next ? (TEST ? 'Free' : formatCoins(b.cost)) : 'Locked';
       let cls = 'card';
       if (equipped) cls += ' equipped';
       if (!owned && !next) cls += ' cant';
@@ -716,8 +693,9 @@
       const u = LBT.UPGRADES[i];
       const owned = save.tiers[u.id] || 0;
       const maxed = owned >= u.max;
-      const cost = maxed ? 'Maxed' : formatCoins(LBT.tierCost(u, owned));
-      const cant = !maxed && save.coins < LBT.tierCost(u, owned);
+      const price = LBT.shopCost(LBT.tierCost(u, owned));
+      const cost = maxed ? 'Maxed' : (TEST ? 'Free' : formatCoins(price));
+      const cant = !maxed && save.coins < price;
       let cls = 'card' + (maxed ? ' maxed' : '') + (cant ? ' cant' : '');
       if (shopFlash === 'upgrade:' + u.id) cls += ' flash';
       const total = Math.round(u.per * owned * 100);
@@ -733,8 +711,9 @@
       const a = LBT.ATTACHMENTS[i];
       const owned = !!save.attachments[a.id];
       const open = LBT.attachmentGateOpen(a, save);
-      let cost = owned ? 'Owned' : open ? formatCoins(a.cost) : 'Level ' + a.gate;
-      const cant = !owned && (!open || save.coins < a.cost);
+      const price = LBT.shopCost(a.cost);
+      let cost = owned ? 'Owned' : open ? (TEST ? 'Free' : formatCoins(price)) : 'Level ' + a.gate;
+      const cant = !owned && (!open || save.coins < price);
       let cls = 'card' + (owned ? ' maxed' : '') + (cant ? ' cant' : '');
       if (shopFlash === 'attach:' + a.id) cls += ' flash';
       html += '<button type="button" class="' + cls + '" data-act="attach" data-id="' + a.id + '">';
@@ -783,7 +762,7 @@
       const u = LBT.UPGRADES.filter(function (item) { return item.id === id; })[0];
       const owned = save.tiers[id] || 0;
       if (!u || owned >= u.max) return;
-      const cost = LBT.tierCost(u, owned);
+      const cost = LBT.shopCost(LBT.tierCost(u, owned));
       if (save.coins < cost) { LBT.audio.ensure(); LBT.audio.deny(); return; }
       const pct = chargePct();
       save.coins -= cost;
@@ -804,8 +783,8 @@
       }
       if (idx !== cur + 1) { LBT.audio.deny(); return; }
       const model = LBT.BLOWERS[idx];
-      if (save.coins < model.cost) { LBT.audio.ensure(); LBT.audio.deny(); return; }
-      save.coins -= model.cost;
+      if (save.coins < LBT.shopCost(model.cost)) { LBT.audio.ensure(); LBT.audio.deny(); return; }
+      save.coins -= LBT.shopCost(model.cost);
       save.blowerId = id;
       shopFlash = 'blower:' + id;
       refreshStats(1);
@@ -814,12 +793,12 @@
     if (act === 'attach') {
       const a = LBT.ATTACHMENTS.filter(function (item) { return item.id === id; })[0];
       if (!a || save.attachments[id]) return;
-      if (!LBT.attachmentGateOpen(a, save) || save.coins < a.cost) {
+      if (!LBT.attachmentGateOpen(a, save) || save.coins < LBT.shopCost(a.cost)) {
         LBT.audio.ensure();
         LBT.audio.deny();
         return;
       }
-      save.coins -= a.cost;
+      save.coins -= LBT.shopCost(a.cost);
       save.attachments[id] = true;
       if (id === 'narrow') save.nozzle = 'narrow';
       if (id === 'wide' && save.nozzle === 'stock') save.nozzle = 'wide';
@@ -881,6 +860,51 @@
     ctx.arcTo(x, y + h, x, y, rr);
     ctx.arcTo(x, y, x + w, y, rr);
     ctx.closePath();
+  }
+
+  function drawGale(level, time) {
+    const wind = LBT.windAt(level, time);
+    if (!(wind.mag > 1)) return;
+    const ang = wind.angle;
+    const cx = Math.cos(ang);
+    const cy = Math.sin(ang);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(232, 244, 255, ' + Math.min(0.55, 0.18 + wind.mag / 520) + ')';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    const shift = (time * (50 + wind.mag)) % 120;
+    const cols = Math.ceil(level.yard.w / 110) + 1;
+    const rows = Math.ceil(level.yard.h / 84) + 1;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = ((c * 110 + shift * cx + r * 23) % (level.yard.w + 80)) - 40;
+        const y = ((r * 84 + shift * cy + c * 19) % (level.yard.h + 80)) - 40;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + cx * 42, y + cy * 42);
+        ctx.stroke();
+      }
+    }
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    const horizontal = Math.abs(cx) >= Math.abs(cy);
+    const count = horizontal ? 4 : 5;
+    for (let i = 0; i < count; i++) {
+      const t = (i + 0.5) / count;
+      const x = horizontal ? (cx > 0 ? 34 : level.yard.w - 34) : t * level.yard.w;
+      const y = horizontal ? t * level.yard.h : (cy > 0 ? 34 : level.yard.h - 34);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(ang);
+      ctx.beginPath();
+      ctx.moveTo(22, 0);
+      ctx.lineTo(-12, 11);
+      ctx.lineTo(-4, 0);
+      ctx.lineTo(-12, -11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
   }
 
   function drawZone(level, time) {
@@ -1093,23 +1117,7 @@
     ctx.save();
     ctx.clip();
     if (grass) ctx.drawImage(grass, 0, 0);
-    const amb = LBT.ambientAt(level, view.raceTime || 0);
-    const ambMag = Math.hypot(amb.x, amb.y);
-    if (ambMag > 50) {
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,' + Math.min(0.28, ambMag / 500) + ')';
-      ctx.lineWidth = 2;
-      const ang = Math.atan2(amb.y, amb.x);
-      for (let i = 0; i < 7; i++) {
-        const px = (i * 173 + view.raceTime * 30) % level.yard.w;
-        const py = (i * 97) % level.yard.h;
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(px + Math.cos(ang) * 36, py + Math.sin(ang) * 36);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
+    drawGale(level, view.raceTime || 0);
     drawZone(level, view.raceTime || 0);
     drawObstacles(level, view.raceTime || 0);
     drawWind(view.blower, view.stats, view.raceTime || 0);
@@ -1395,22 +1403,12 @@ render();
         }, 30);
       });
     }
-    $('start-hint').textContent = coarsePointer
-      ? 'Drag a finger across the yard to blow. Wind follows the swipe.'
-      : 'The blower follows the cursor. Hold the mouse button, trackpad click, or Space to blow.';
+    $('start-hint').textContent = 'Bag leaves for coins. Anything blown off the lawn is gone and pays nothing.';
   }
 
   function applyTestUnlock() {
     LBT.testing = true;
     save.unlockedLevel = LBT.MAX_LEVEL;
-    save.coins = 999999;
-    save.blowerId = 'vortex';
-    Object.keys(save.tiers).forEach(function (key) {
-      save.tiers[key] = LBT.BALANCE.maxTier;
-    });
-    save.attachments.narrow = true;
-    save.attachments.wide = true;
-    save.attachments.vacuum = true;
     if (!document.querySelector('.test-tag')) {
       const tag = document.createElement('div');
       tag.className = 'test-tag';

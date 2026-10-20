@@ -133,6 +133,10 @@
     return LBT.computeStats(fake);
   };
 
+  LBT.shopCost = function (amount) {
+    return LBT.testing ? 0 : amount;
+  };
+
   LBT.attachmentGateOpen = function (att, save) {
     return (save.unlockedLevel || 1) >= att.gate;
   };
@@ -142,16 +146,16 @@
     for (let i = 0; i < LBT.UPGRADES.length; i++) {
       const u = LBT.UPGRADES[i];
       const owned = save.tiers[u.id] || 0;
-      if (owned < u.max && coins >= LBT.tierCost(u, owned)) return true;
+      if (owned < u.max && coins >= LBT.shopCost(LBT.tierCost(u, owned))) return true;
     }
     const idx = LBT.blowerIndex(save.blowerId);
     if (idx < LBT.BLOWERS.length - 1) {
       const next = LBT.BLOWERS[idx + 1];
-      if (coins >= next.cost) return true;
+      if (coins >= LBT.shopCost(next.cost)) return true;
     }
     for (let j = 0; j < LBT.ATTACHMENTS.length; j++) {
       const a = LBT.ATTACHMENTS[j];
-      if (!save.attachments[a.id] && LBT.attachmentGateOpen(a, save) && coins >= a.cost) return true;
+      if (!save.attachments[a.id] && LBT.attachmentGateOpen(a, save) && coins >= LBT.shopCost(a.cost)) return true;
     }
     return false;
   };
