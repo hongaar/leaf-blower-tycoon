@@ -195,13 +195,29 @@
     }
 
     const travel = Math.hypot(blower.vx, blower.vy);
-    if (blower.followMove && !blower.aimLock && travel > 160) {
-      blower.desiredAim = Math.atan2(blower.vy, blower.vx);
-      blower.hasAim = true;
+    if (blower.followMove && !blower.aimLock && travel > 90) {
+      const heading = Math.atan2(blower.vy, blower.vx);
+      if (blower.aimHeading == null || !isFinite(blower.aimHeading)) blower.aimHeading = blower.aim;
+      const smooth = blower.coarseAim ? 7 : 18;
+      blower.aimHeading += LBT.angDiff(heading, blower.aimHeading) * Math.min(1, dt * smooth);
+      const fromAim = Math.abs(LBT.angDiff(blower.aimHeading, blower.aim));
+      const commit = blower.coarseAim ? 0.62 : 0.3;
+      const hold = blower.coarseAim ? 0.36 : 0.14;
+      if (fromAim > commit || (blower.aimArmed && fromAim > hold)) {
+        blower.desiredAim = blower.aimHeading;
+        blower.hasAim = true;
+        blower.aimArmed = true;
+      } else if (fromAim < hold * 0.65) {
+        blower.aimArmed = false;
+      }
     }
     if (blower.hasAim) {
       const diff = LBT.angDiff(blower.desiredAim, blower.aim);
-      const turn = Math.abs(diff) > 0.85 ? 1 : Math.min(1, dt * 52);
+      const mag = Math.abs(diff);
+      let turn;
+      if (blower.coarseAim) turn = Math.min(1, dt * (mag > 1.2 ? 14 : 8));
+      else if (mag > 1.15) turn = 1;
+      else turn = Math.min(1, dt * 26);
       blower.aim += diff * turn;
     }
 

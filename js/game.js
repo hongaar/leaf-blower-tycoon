@@ -448,13 +448,15 @@
     }
 
     if (!(keyX || keyY)) {
-      if (world) {
+      if (world && !touches.length) {
         const dx = world.x - blower._lastTX;
         const dy = world.y - blower._lastTY;
         if (dx * dx + dy * dy > 1) {
           blower.desiredAim = Math.atan2(dy, dx);
           blower.hasAim = true;
         }
+      }
+      if (world) {
         blower._lastTX = world.x;
         blower._lastTY = world.y;
       }
@@ -465,6 +467,7 @@
     }
     blower.aimLock = !!(aimWorld || keyX || keyY);
     blower.followMove = !blower.aimLock;
+    blower.coarseAim = touches.length > 0 && !aimWorld;
 
     const wantsStart = blowing || keyX !== 0 || keyY !== 0;
     blower.snap = !session.raceStarted;
