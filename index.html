@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#14210f" />
+<title>Leaf Blower Tycoon</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23e07a32' d='M16 3c6 6 9 11 8 18-4 1-8 0-10-2 1-6-1-11-4-16 2 0 4 0 6 0z'/%3E%3Cpath fill='%238c6239' d='M15 18c1 4 1 7 0 10' stroke='%238c6239' stroke-width='1.4'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<canvas id="c" aria-label="Leaf blower yard"></canvas>
+
+<div id="hud" class="hud hidden">
+  <div id="hud-top" class="hud-top">
+    <div class="chip" id="level-chip">Lv 1</div>
+    <div class="chip timer-chip">
+      <span id="timer">READY</span>
+      <small id="best-label">Best --</small>
+    </div>
+    <div class="chip" id="leaves-chip">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2c5 5 8 9 7 15-4 1-7 .2-9-1.6C11 10 9 6 6 2c2.2 0 4.2.2 6 0z"/></svg>
+      <span id="leaves-count">0/0</span>
+    </div>
+    <div class="chip coins" id="coins-chip">
+      <span class="coin-icon" aria-hidden="true"></span>
+      <span id="coins">0</span>
+    </div>
+    <div class="chip combo hidden" id="combo-chip">x2</div>
+    <button id="mute" class="icon-btn" type="button" aria-label="Mute sound" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9h4l5-4v14l-5-4H4V9zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+    </button>
+  </div>
+  <div class="battery-wrap" id="battery-wrap">
+    <div id="battery-bar"></div>
+  </div>
+  <div id="hint" class="hint">Hold to blow leaves into the glowing zone.</div>
+  <div id="hud-bottom" class="hud-bottom">
+    <button id="vacuum-btn" class="tool-btn hidden" type="button" aria-pressed="false">Vacuum</button>
+    <span class="grow"></span>
+    <button id="shop-btn" class="tool-btn shop" type="button">Shop<span id="afford-badge" class="badge hidden">!</span></button>
+    <button id="pause-btn" class="tool-btn" type="button">Pause</button>
+  </div>
+</div>
+
+<div id="debug" class="debug hidden">
+  <div id="debug-readout"></div>
+  <button id="debug-sim" type="button">Sim this level</button>
+</div>
+
+<div id="screen-start" class="screen">
+  <div class="panel title-panel">
+    <p class="eyebrow">Autumn yard co.</p>
+    <h1>Leaf Blower<br />Tycoon</h1>
+    <p class="lede">Blow every leaf into the zone. Each one pays a leafcoin. Buy stronger blowers, beat the par time, and keep your gear forever.</p>
+    <button id="continue-btn" class="btn primary" type="button">Continue</button>
+    <div class="row">
+      <button id="levels-btn" class="btn" type="button">Levels</button>
+      <button id="menu-shop-btn" class="btn" type="button">Shop</button>
+    </div>
+    <p id="start-hint" class="fine">Move the blower, hold to blow, sweep leaves into the glowing zone.</p>
+    <button id="reset-btn" class="btn ghost" type="button">Reset progress</button>
+  </div>
+</div>
+
+<div id="screen-levels" class="screen hidden">
+  <div class="panel wide">
+    <div class="panel-head">
+      <h2>Levels</h2>
+      <button id="levels-back" class="btn small" type="button">Back</button>
+    </div>
+    <p class="fine">Stars compare your best time with par. Three stars means you beat par.</p>
+    <div id="level-grid" class="level-grid"></div>
+  </div>
+</div>
+
+<div id="screen-pause" class="screen dim hidden">
+  <div class="panel">
+    <h2>Paused</h2>
+    <p class="fine" id="pause-help"></p>
+    <button id="resume-btn" class="btn primary" type="button">Resume</button>
+    <div class="row">
+      <button id="pause-shop" class="btn" type="button">Shop</button>
+      <button id="pause-restart" class="btn" type="button">Restart</button>
+    </div>
+    <div class="row">
+      <button id="pause-levels" class="btn" type="button">Levels</button>
+      <button id="pause-quit" class="btn" type="button">Menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-shop" class="screen dim hidden">
+  <div class="panel wide shop-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Shop</h2>
+        <p class="fine" id="shop-note">Upgrades stay with you.</p>
+      </div>
+      <button id="shop-close" class="btn small" type="button">Close</button>
+    </div>
+    <div class="shop-stats" id="shop-stats"></div>
+    <div id="nozzle-row" class="segment"></div>
+    <div id="shop-grid" class="shop-grid"></div>
+  </div>
+</div>
+
+<div id="screen-complete" class="screen dim hidden">
+  <div class="panel">
+    <p class="eyebrow" id="result-kicker">Level cleared</p>
+    <h2 id="result-title">Front Lawn</h2>
+    <div id="result-stars" class="stars">★★★</div>
+    <div id="result-banner" class="banner hidden">New best</div>
+    <dl class="stats" id="result-stats"></dl>
+    <button id="next-btn" class="btn primary" type="button">Next level</button>
+    <div class="row">
+      <button id="replay-btn" class="btn" type="button">Replay</button>
+      <button id="complete-shop" class="btn" type="button">Shop</button>
+    </div>
+    <button id="complete-levels" class="btn ghost" type="button">All levels</button>
+  </div>
+</div>
+
+<div id="screen-confirm" class="screen dim hidden">
+  <div class="panel">
+    <h2>Reset progress?</h2>
+    <p class="lede">This clears leafcoins, blowers, upgrades, and best times on this device.</p>
+    <button id="confirm-yes" class="btn danger" type="button">Reset everything</button>
+    <button id="confirm-no" class="btn" type="button">Cancel</button>
+  </div>
+</div>
+
+<script src="js/upgrades.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/blower.js"></script>
+<script src="js/leaves.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
