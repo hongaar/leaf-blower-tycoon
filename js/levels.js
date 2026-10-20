@@ -213,9 +213,9 @@
       leaves: [],
       spawns: [],
       wetRatio: levelNum <= 2 ? 0 : Math.min(0.62, (levelNum - 2) * 0.042),
-      wind: levelNum < 3 ? null : {
-        speed: Math.min(220, 62 + (levelNum - 3) * 9),
-        period: Math.max(3.2, 18 - (levelNum - 3) * 0.72),
+      wind: levelNum < 4 ? null : {
+        speed: Math.min(200, 20 + (levelNum - 4) * 6),
+        period: Math.max(3.2, 22 - (levelNum - 4) * 0.65),
       },
       ambient: { strength: 0, gust: 0 },
       total: 0,

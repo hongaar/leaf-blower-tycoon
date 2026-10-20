@@ -106,7 +106,7 @@
   AudioEngine.prototype.updateWind = function (mag) {
     if (!this.ctx || !this.windGain) return;
     const speed = Math.max(0, mag || 0);
-    const target = this.muted ? 0 : Math.min(0.11, speed / 2400);
+    const target = this.muted ? 0 : Math.min(0.1, Math.max(0, speed - 18) / 2800);
     this.windGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.25);
     this.windFilter.frequency.setTargetAtTime(260 + speed * 1.6, this.ctx.currentTime, 0.3);
   };

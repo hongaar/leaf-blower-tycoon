@@ -872,25 +872,28 @@
     const cx = Math.cos(ang);
     const cy = Math.sin(ang);
     ctx.save();
-    ctx.strokeStyle = 'rgba(232, 244, 255, ' + Math.min(0.55, 0.18 + wind.mag / 520) + ')';
-    ctx.lineWidth = 3;
+    const presence = Math.min(1, wind.mag / 200);
+    ctx.strokeStyle = 'rgba(232, 244, 255, ' + (0.07 + presence * 0.4) + ')';
+    ctx.lineWidth = 1.2 + presence * 2.2;
     ctx.lineCap = 'round';
-    const shift = (time * (50 + wind.mag)) % 120;
+    const shift = (time * (30 + wind.mag)) % 120;
     const cols = Math.ceil(level.yard.w / 110) + 1;
     const rows = Math.ceil(level.yard.h / 84) + 1;
+    const streak = 16 + presence * 28;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const x = ((c * 110 + shift * cx + r * 23) % (level.yard.w + 80)) - 40;
         const y = ((r * 84 + shift * cy + c * 19) % (level.yard.h + 80)) - 40;
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineTo(x + cx * 42, y + cy * 42);
+        ctx.lineTo(x + cx * streak, y + cy * streak);
         ctx.stroke();
       }
     }
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillStyle = 'rgba(255, 255, 255, ' + (0.28 + presence * 0.6) + ')';
     const horizontal = Math.abs(cx) >= Math.abs(cy);
     const count = horizontal ? 4 : 5;
+    const arrow = 8 + presence * 14;
     for (let i = 0; i < count; i++) {
       const t = (i + 0.5) / count;
       const x = horizontal ? (cx > 0 ? 34 : level.yard.w - 34) : t * level.yard.w;
@@ -898,6 +901,7 @@
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(ang);
+      ctx.scale(arrow / 22, arrow / 22);
       ctx.beginPath();
       ctx.moveTo(22, 0);
       ctx.lineTo(-12, 11);
