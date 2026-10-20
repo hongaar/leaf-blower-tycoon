@@ -298,6 +298,8 @@
       raceStarted: !!STRESS,
       raceTime: 0,
       collected: 0,
+      bagged: 0,
+      escaped: 0,
       runCoins: 0,
       parBonus: 0,
       combo: 0,
@@ -372,6 +374,7 @@
     if (Math.random() < session.stats.magnet) gain += 1;
     save.coins += gain;
     session.runCoins += gain;
+    session.bagged += 1;
     session.collected += 1;
     session.hint = false;
     LBT.audio.requestPing(session.combo);
@@ -381,6 +384,18 @@
     void chip.offsetWidth;
     chip.classList.add('pop');
     saveTimer = 0.4;
+  }
+
+  function onEscape(leaf) {
+    session.escaped += 1;
+    session.collected += 1;
+    fx.popups.push({
+      x: leaf.x,
+      y: leaf.y - 8,
+      text: 'gone',
+      life: 0.45,
+      max: 0.45,
+    });
   }
 
   function releaseSpawns(view, time) {
@@ -477,7 +492,7 @@
     if (!session.raceStarted) return;
     session.raceTime += dt;
     releaseSpawns(session, session.raceTime);
-    LBT.stepLeaves(session.leaves, blower, session.stats, session.level, session.raceTime, dt, onCollect);
+    LBT.stepLeaves(session.leaves, blower, session.stats, session.level, session.raceTime, dt, onCollect, onEscape);
     if (blower.blowing) LBT.spawnDust(fx, blower, session.stats);
     if (!reducedMotion && blower.blowing && session.stats.power > 750) {
       fx.shake = Math.max(fx.shake, session.stats.power > 1200 ? 2.4 : 1.15);
@@ -499,7 +514,7 @@
     demo.raceTime += dt;
     LBT.steerAi(demo.blower, demo.leaves, demo.level, demo.stats, dt);
     LBT.stepBlower(demo.blower, demo.stats, dt, demo.level);
-    LBT.stepLeaves(demo.leaves, demo.blower, demo.stats, demo.level, demo.raceTime, dt, function () {});
+    LBT.stepLeaves(demo.leaves, demo.blower, demo.stats, demo.level, demo.raceTime, dt, function () {}, function () {});
     if (demo.blower.blowing) LBT.spawnDust(fx, demo.blower, demo.stats);
     const yard = demo.level.yard;
     for (let i = 0; i < demo.leaves.length; i++) {
@@ -513,6 +528,7 @@
         leaf.vz = 0;
         leaf.vx = 0;
         leaf.vy = 0;
+        leaf.escaped = false;
         leaf.x = 70 + Math.random() * (yard.w - 140);
         leaf.y = 50 + Math.random() * yard.h * 0.45;
       }
@@ -524,20 +540,12 @@
     session.won = true;
     session.blower.blowing = false;
     const level = session.level;
-    const timeMs = Math.max(1, session.raceTime * 1000);
-    session.timeMs = timeMs;
+    const score = session.runCoins;
+    session.timeMs = Math.max(1, session.raceTime * 1000);
     const key = String(level.n);
-    const prev = save.bestTimes[key];
-    session.isBest = prev == null || timeMs < prev;
-    if (session.isBest) save.bestTimes[key] = timeMs;
-    let bonus = 0;
-    if (timeMs <= level.parMs) {
-      bonus = Math.round(level.total * LBT.BALANCE.parBonus * Math.min(1.6, level.parMs / timeMs));
-    } else if (timeMs <= level.parMs * 1.3) {
-      bonus = Math.round(level.total * LBT.BALANCE.parClose);
-    }
-    session.parBonus = bonus;
-    save.coins += bonus;
+    const prev = save.bestCoins[key];
+    session.isBest = prev == null || score > prev;
+    if (session.isBest) save.bestCoins[key] = score;
     if (save.unlockedLevel < level.n + 1) save.unlockedLevel = level.n + 1;
     if (level.n < LBT.MAX_LEVEL) save.lastLevel = level.n + 1;
     LBT.writeSave(save);
@@ -565,6 +573,8 @@
     const blowing = !!(view && view.blower.blowing && (mode === 'play' || mode === 'start'));
     const powerNorm = view ? Math.min(1, view.stats.power / 1600) : 0;
     const powerMul = view && typeof view.blower.powerMul === 'number' ? view.blower.powerMul : 1;
+    const wind = view ? LBT.windAt(view.level, view.raceTime || 0) : null;
+    LBT.audio.updateWind(wind ? wind.mag : 0);
     LBT.audio.updateBlower(blowing, powerNorm, powerMul);
     const rustleView = mode === 'play' ? session : mode === 'start' ? demo : null;
     LBT.audio.updateRustle(rustleView ? movingLeaves(rustleView) : 0);
@@ -576,9 +586,9 @@
     const level = session.level;
     $('level-chip').textContent = 'Lv ' + level.n;
     $('level-chip').title = level.name;
-    $('timer').textContent = session.raceStarted ? formatMs(session.raceTime * 1000) : 'READY';
-    const best = save.bestTimes[String(level.n)];
-    $('best-label').textContent = 'Best ' + formatMs(best) + '  ·  Par ' + formatMs(level.parMs);
+    $('timer').textContent = formatCoins(session.runCoins);
+    const best = save.bestCoins[String(level.n)];
+    $('best-label').textContent = 'Best ' + (best == null ? '—' : formatCoins(best));
     $('leaves-count').textContent = uncollected(session) + '/' + level.total;
     $('coins').textContent = formatCoins(save.coins);
     const combo = $('combo-chip');
@@ -601,9 +611,7 @@
     vac.setAttribute('aria-pressed', save.vacuumOn ? 'true' : 'false');
     $('hint').classList.toggle('hidden', !session.hint);
     if (session.hint) {
-      $('hint').textContent = coarsePointer
-        ? 'Drag to move and blow. Wind follows your swipe. A second finger aims.'
-        : 'Move the cursor. Hold the mouse button or Space to blow toward your last movement.';
+      $('hint').textContent = 'Coins only count in the bag. Leaves blown off the lawn vanish.';
     }
   }
 
@@ -615,17 +623,16 @@
 
   function fillComplete() {
     const level = session.level;
-    const stars = LBT.starsFor(session.timeMs, level.parMs);
+    const stars = LBT.starsForCoins(session.runCoins, level.total);
     $('result-kicker').textContent = 'Level ' + level.n + ' cleared';
     $('result-title').textContent = level.name;
     $('result-stars').innerHTML = starString(stars).replace(/☆/g, '<span class="off">☆</span>');
     $('result-banner').classList.toggle('hidden', !session.isBest);
     const rows = [
-      ['Time', formatMs(session.timeMs)],
-      ['Par', formatMs(level.parMs)],
-      ['Best', formatMs(save.bestTimes[String(level.n)])],
-      ['Leafcoins', '+' + session.runCoins],
-      ['Par bonus', '+' + session.parBonus],
+      ['Score', formatCoins(session.runCoins)],
+      ['Best', formatCoins(save.bestCoins[String(level.n)] == null ? 0 : save.bestCoins[String(level.n)])],
+      ['Bagged', String(session.bagged)],
+      ['Blown away', String(session.escaped)],
     ];
     $('result-stats').innerHTML = rows.map(function (row) {
       return '<dt>' + row[0] + '</dt><dd>' + row[1] + '</dd>';
@@ -642,12 +649,12 @@
     for (let n = 1; n <= LBT.MAX_LEVEL; n++) {
       const locked = n > save.unlockedLevel;
       const meta = locked ? null : levelMeta(n);
-      const best = save.bestTimes[String(n)];
-      const stars = meta && best ? LBT.starsFor(best, meta.parMs) : 0;
-      html += '<button type="button" class="lvl' + (locked ? ' lock' : '') + (best ? ' cleared' : '') + '" data-level="' + n + '"' + (locked ? ' disabled' : '') + '>';
+      const best = save.bestCoins[String(n)];
+      const stars = meta && best != null ? LBT.starsForCoins(best, meta.total) : 0;
+      html += '<button type="button" class="lvl' + (locked ? ' lock' : '') + (best != null ? ' cleared' : '') + '" data-level="' + n + '"' + (locked ? ' disabled' : '') + '>';
       html += '<span class="n">' + (locked ? '·' : n) + '</span>';
       html += '<span class="s">' + (locked ? 'Locked' : starString(stars)) + '</span>';
-      html += '<span class="t">' + (best ? formatMs(best) : locked ? '' : 'Par ' + formatMs(meta.parMs)) + '</span>';
+      html += '<span class="t">' + (best != null ? formatCoins(best) : '') + '</span>';
       html += '</button>';
     }
     grid.innerHTML = html;

@@ -110,6 +110,8 @@
     this.windGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.25);
     this.windFilter.frequency.setTargetAtTime(260 + speed * 1.6, this.ctx.currentTime, 0.3);
   };
+
+  AudioEngine.prototype.updateRustle = function (moving) {
     if (!this.ctx || !this.rustleGain) return;
     const amount = Math.max(0, moving || 0);
     const target = this.muted ? 0 : Math.min(0.05, amount * 0.0009);
